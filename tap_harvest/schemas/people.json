@@ -1,0 +1,122 @@
+{
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": [
+        "null",
+        "integer"
+      ]
+    },
+    "first_name": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "last_name": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "email": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "login": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "admin": {
+      "type": [
+        "null",
+        "boolean"
+      ]
+    },
+    "archived": {
+      "type": [
+        "null",
+        "boolean"
+      ]
+    },
+    "subscribed": {
+      "type": [
+        "null",
+        "boolean"
+      ]
+    },
+    "avatar_url": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "roles": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "updated_at": {
+      "type": [
+        "null",
+        "string"
+      ],
+      "format": "date-time"
+    },
+    "updated_by_id": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
+    "harvesr_user_id": {
+      "type": [
+        "null",
+        "integer"
+      ]
+    },
+    "weekly_capacity": {
+      "type": [
+        "null",
+        "integer"
+      ]
+    },
+    "working_days": {
+      "type": "object",
+      "properties": {
+        "monday": {
+          "type": "boolean"
+        },
+        "tuesday": {
+          "type": "boolean"
+        },
+        "wednesday": {
+          "type": "boolean"
+        },
+        "thursday": {
+          "type": "boolean"
+        },
+        "friday": {
+          "type": "boolean"
+        },
+        "saturday": {
+          "type": "boolean"
+        },
+        "sunday": {
+          "type": "boolean"
+        }
+      }
+    },
+    "color_blind": {
+      "type": [
+        "null",
+        "string"
+      ]
+    }
+  }
+}
