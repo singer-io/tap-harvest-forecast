@@ -83,7 +83,7 @@ def append_times_to_dates(item, date_fields):
             if item.get(date_field):
                 item[date_field] += "T00:00:00Z"
 
-def sync_endpoint(endpoint date_fields=None):
+def sync_endpoint(endpoint, date_fields=None):
     schema = load_schema(endpoint)
     bookmark_property = 'updated_at'
 
@@ -117,23 +117,11 @@ def sync_endpoint(endpoint date_fields=None):
 def do_sync():
     LOGGER.info("Starting sync")
 
-    # Grab all clients and client contacts. Contacts have client FKs so grab
-    # them last.
-    sync_endpoint("clients", "client")
-    sync_endpoint("clients", "client")
-    sync_endpoint("clients", "client")
-    sync_endpoint("clients", "client")
-    sync_endpoint("clients", "client")
-
-    # Get all people and tasks before grabbing the projects. When we grab the
-    # projects we will grab the project_users, project_tasks, and time_entries
-    # for each.
-    # sync_endpoint("people", "user")
-    # sync_endpoint("tasks", "task")
-
-    # Sync expenses and their categories
-    # sync_endpoint("expense_categories", "expense_category")
-    # sync_endpoint("expenses", "expense", date_fields=["spent_at"])
+    sync_endpoint("assignments")
+    sync_endpoint("clients")
+    sync_endpoint("milestones")
+    sync_endpoint("people")
+    sync_endpoint("projects")
 
     LOGGER.info("Sync complete")
 
