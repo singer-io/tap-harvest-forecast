@@ -17,11 +17,11 @@ setup(name='tap-harvest-forecast',
       ],
       entry_points='''
           [console_scripts]
-          tap-harvest=tap_harvest:main
+          tap-harvest-forecast=tap_harvest_forecast:main
       ''',
-      packages=['tap_harvest'],
+      packages=['tap_harvest_forecast'],
       package_data = {
-          'tap_harvest/schemas': [
+          'tap_harvest_forecast/schemas': [
             "assignments.json",
             "clients.json",
             "milestones.json",

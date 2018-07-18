@@ -1,2 +1,2 @@
 include LICENSE
-include tap_harvest/schemas/*.json
+include tap_harvest_forecast/schemas/*.json
