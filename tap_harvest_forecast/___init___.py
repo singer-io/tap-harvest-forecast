@@ -2,6 +2,7 @@
 
 import datetime
 import os
+import sys
 
 import backoff
 import requests
@@ -29,9 +30,6 @@ class Auth:
         self._access_token = access_token
 
     def get_access_token(self):
-        if (self._access_token is not None and self._expires_at > pendulum.now()):
-            return self._access_token
-
         return self._access_token
 
     def get_account_id(self):
@@ -69,7 +67,7 @@ def request(url, params=None):
     access_token = AUTH.get_access_token()
     account_id = AUTH.get_account_id()
     headers = {"Accept": "application/json",
-               "Forecast-Account-ID": account_id
+               "Forecast-Account-ID": account_id,
                "Authorization": "Bearer " + access_token}
     req = requests.Request("GET", url=url, params=params, headers=headers).prepare()
     LOGGER.info("GET {}".format(req.url))
@@ -95,12 +93,12 @@ def sync_endpoint(endpoint, date_fields=None):
     start = get_start(endpoint)
 
     url = get_url(endpoint)
-    data = request(url)
+    data = request(url)[endpoint]
     time_extracted = utils.now()
 
     with Transformer() as transformer:
         for row in data:
-            item = row[endpoint]
+            item = row
             item = transformer.transform(item, schema)
 
             append_times_to_dates(item, date_fields)

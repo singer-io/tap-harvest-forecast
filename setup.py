@@ -6,7 +6,7 @@ setup(name='tap-harvest-forecast',
       version="0.0.1",
       description='Singer.io tap for extracting data from the Harvest Forecast api',
       author='Robert Benjamin',
-      url='http://singer.io',
+      url='https://github.com/assemble-inc/tap-harvest-forecast',
       classifiers=['Programming Language :: Python :: 3 :: Only'],
       py_modules=['tap_harvest_forecast'],
       install_requires=[
@@ -29,5 +29,5 @@ setup(name='tap-harvest-forecast',
             "projects.json"
           ],
       },
-      include_package_data=True,
+      include_package_data=True
 )

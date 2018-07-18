@@ -13,6 +13,12 @@
         "string"
       ]
     },
+    "color": {
+      "type": [
+        "null",
+        "string"
+      ]
+    },
     "code": {
       "type": [
         "null",
