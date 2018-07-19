@@ -3,12 +3,12 @@
 import datetime
 import os
 
-import backoff
 import requests
 import pendulum
 
 import singer
 from singer import Transformer, utils
+import backoff
 
 LOGGER = singer.get_logger()
 SESSION = requests.Session()

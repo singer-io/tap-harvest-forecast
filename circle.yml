@@ -1,6 +1,6 @@
 machine:
   python:
-    version: 3.4.4
+    version: 3.7.0
 
 dependencies:
   pre:
@@ -8,4 +8,4 @@ dependencies:
 
 test:
   post:
-    - pylint tap_harvest_forecast --disable missing-docstring,logging-format-interpolation,no-member,broad-except,redefined-variable-type,too-many-branches,too-few-public-methods,wrong-import-order,too-many-locals
+    - pylint tap_harvest_forecast -d missing-docstring -d logging-format-interpolation -d too-many-locals -d too-many-arguments
