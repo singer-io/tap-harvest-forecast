@@ -82,5 +82,6 @@
         "type": "string"
       }
     }
-  }
+  },
+  "additionalProperties": false
 }

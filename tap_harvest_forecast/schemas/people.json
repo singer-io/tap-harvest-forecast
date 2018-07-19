@@ -110,7 +110,8 @@
         "sunday": {
           "type": "boolean"
         }
-      }
+      },
+      "additionalProperties": false
     },
     "color_blind": {
       "type": [
@@ -118,5 +119,6 @@
         "string"
       ]
     }
-  }
+  },
+  "additionalProperties": false
 }

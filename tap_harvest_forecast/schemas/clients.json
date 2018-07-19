@@ -38,5 +38,6 @@
         "integer"
       ]
     }
-  }
+  },
+  "additionalProperties": false
 }
