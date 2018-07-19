@@ -74,7 +74,7 @@
         "string"
       ]
     },
-    "harvesr_user_id": {
+    "harvest_user_id": {
       "type": [
         "null",
         "integer"
