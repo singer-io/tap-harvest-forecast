@@ -4,7 +4,6 @@ import datetime
 import os
 
 import requests
-import pendulum
 
 import singer
 from singer import Transformer, utils

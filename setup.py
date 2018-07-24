@@ -10,9 +10,8 @@ setup(name='tap-harvest-forecast',
       classifiers=['Programming Language :: Python :: 3 :: Only'],
       py_modules=['tap_harvest_forecast'],
       install_requires=[
-          'singer-python==5.0.4',
-          'requests==2.13.0',
-          'pendulum==1.2.0',
+          'singer-python==5.1.5',
+          'requests==2.19.1',
           'backoff==1.3.2'
       ],
       entry_points='''
