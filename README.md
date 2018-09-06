@@ -4,6 +4,8 @@ A singer.io tap for extracting data from the Harvest Forecast REST API, written 
 
 As the Harvest Forecast API is [not yet public](https://help.getharvest.com/forecast/faqs/faq-list/api/), this tap is experimental and liable to break at any time. Please keep this in mind if you run into any issues (and submit a PR if you can fix something broken).
 
+Author: Robert Benjamin ([@robertbenjamin](https://github.com/robertbenjamin))
+
 ## Quick start
 
 1. Install
@@ -47,3 +49,5 @@ As the Harvest Forecast API is [not yet public](https://help.getharvest.com/fore
     ```
 
 ---
+
+Copyright &copy; 2018 Stitch
