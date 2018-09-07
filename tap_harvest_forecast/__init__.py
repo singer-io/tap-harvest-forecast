@@ -4,6 +4,7 @@ import datetime
 import json
 import os
 import requests
+import sys
 
 import singer
 from singer import metadata
@@ -136,7 +137,7 @@ def do_discover():
         mdata = metadata.write(mdata, (), 'valid-replication-keys', [REPLICATION_KEY])
 
         for field_name in schema['properties'].keys():
-            if field_name in KEY_PROPERTIES or field_name == REPLICATION_KEY:
+            if field_name == PRIMARY_KEY or field_name == REPLICATION_KEY:
                 mdata = metadata.write(mdata, ('properties', field_name), 'inclusion', 'automatic')
             else:
                 mdata = metadata.write(mdata, ('properties', field_name), 'inclusion', 'available')
@@ -158,7 +159,7 @@ def main_impl():
     if args.discover:
         do_discover()
     elif args.catalog:
-        do_sync(catalog)
+        do_sync(args.catalog)
 
 def main():
     try:
