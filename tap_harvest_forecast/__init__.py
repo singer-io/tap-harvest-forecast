@@ -1,10 +1,13 @@
 #!/usr/bin/env python3
 
 import datetime
+import json
 import os
 import requests
+import sys
 
 import singer
+from singer import metadata
 from singer import Transformer, utils
 import backoff
 
@@ -15,6 +18,17 @@ REQUIRED_CONFIG_KEYS = [
     "account_id",
     "access_token"
 ]
+
+ENDPOINTS = [
+    "assignments",
+    "clients",
+    "milestones",
+    "people",
+    "projects"
+]
+
+PRIMARY_KEY = "id"
+REPLICATION_KEY = 'updated_at'
 
 BASE_URL = "https://api.forecastapp.com/"
 CONFIG = {}
@@ -76,14 +90,11 @@ def append_times_to_dates(item, date_fields):
             if item.get(date_field):
                 item[date_field] += "T00:00:00Z"
 
-def sync_endpoint(endpoint, date_fields = None):
-    schema = load_schema(endpoint)
-    bookmark_property = 'updated_at'
-
+def sync_endpoint(endpoint, schema, mdata, date_fields = None):
     singer.write_schema(endpoint,
                         schema,
-                        ["id"],
-                        bookmark_properties = [bookmark_property])
+                        [PRIMARY_KEY],
+                        bookmark_properties = [REPLICATION_KEY])
 
     start = get_start(endpoint)
     url = get_url(endpoint)
@@ -92,28 +103,52 @@ def sync_endpoint(endpoint, date_fields = None):
 
     for row in data:
         with Transformer() as transformer:
-            item = transformer.transform(row, schema)
-            append_times_to_dates(item, date_fields)
+            rec = transformer.transform(row, schema, mdata)
+            append_times_to_dates(rec, date_fields)
 
-            if item[bookmark_property] >= start:
+            updated_at = rec[REPLICATION_KEY]
+            if updated_at >= start:
                 singer.write_record(endpoint,
-                                    item,
+                                    rec,
                                     time_extracted = time_extracted)
-                utils.update_state(STATE, endpoint, item[bookmark_property])
+                utils.update_state(STATE, endpoint, updated_at)
 
     singer.write_state(STATE)
 
-def do_sync():
+def do_sync(catalog):
     LOGGER.info("Starting sync")
 
-    sync_endpoint("assignments")
-    sync_endpoint("clients")
-    sync_endpoint("milestones")
-    sync_endpoint("people")
-    sync_endpoint("projects")
+    for stream in catalog.streams:
+        mdata = metadata.to_map(stream.metadata)
+        is_selected = metadata.get(mdata, (), 'selected')
+        if is_selected:
+            sync_endpoint(stream.tap_stream_id, stream.schema.to_dict(), mdata)
 
     LOGGER.info("Sync complete")
 
+def do_discover():
+    streams = []
+    for endpoint in ENDPOINTS:
+        schema = load_schema(endpoint)
+
+        mdata = metadata.new()
+
+        mdata = metadata.write(mdata, (), 'table-key-properties', [PRIMARY_KEY])
+        mdata = metadata.write(mdata, (), 'valid-replication-keys', [REPLICATION_KEY])
+
+        for field_name in schema['properties'].keys():
+            if field_name == PRIMARY_KEY or field_name == REPLICATION_KEY:
+                mdata = metadata.write(mdata, ('properties', field_name), 'inclusion', 'automatic')
+            else:
+                mdata = metadata.write(mdata, ('properties', field_name), 'inclusion', 'available')
+
+        streams.append({'stream': endpoint,
+                        'tap_stream_id': endpoint,
+                        'schema': schema,
+                        'metadata': metadata.to_list(mdata)})
+
+    catalog = {"streams": streams}
+    json.dump(catalog, sys.stdout, indent=2)
 
 def main_impl():
     args = utils.parse_args(REQUIRED_CONFIG_KEYS)
@@ -121,7 +156,10 @@ def main_impl():
     global AUTH # pylint: disable=global-statement
     AUTH = Auth(CONFIG['account_id'], CONFIG['access_token'])
     STATE.update(args.state)
-    do_sync()
+    if args.discover:
+        do_discover()
+    elif args.catalog:
+        do_sync(args.catalog)
 
 def main():
     try:
