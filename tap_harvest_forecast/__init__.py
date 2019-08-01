@@ -10,6 +10,7 @@ import singer
 from singer import metadata
 from singer import Transformer, utils
 import backoff
+import time
 
 LOGGER = singer.get_logger()
 SESSION = requests.Session()
@@ -128,22 +129,32 @@ def request(url, params = None):
     resp.raise_for_status()
     return resp.json()
 
+
+def get_stream_version(tap_stream_id):
+    return int(time.time() * 1000)
+
 def append_times_to_dates(item, date_fields):
     if date_fields:
         for date_field in date_fields:
             if item.get(date_field):
                 item[date_field] += "T00:00:00Z"
 
-def sync_endpoint(endpoint, schema, mdata, date_fields = None):
-    singer.write_schema(endpoint,
+def sync_endpoint(catalog_entry, schema, mdata, date_fields = None):
+    singer.write_schema(catalog_entry.tap_stream_id,
                         schema,
                         [PRIMARY_KEY],
                         bookmark_properties = [REPLICATION_KEY])
 
-    start = get_start(endpoint)
-    url = get_url(endpoint)
-    data = request(url)[endpoint]
+    start = get_start(catalog_entry.tap_stream_id)
+    url = get_url(catalog_entry.tap_stream_id)
+    data = request(url)[catalog_entry.tap_stream_id]
     time_extracted = utils.now()
+
+    stream_version = get_stream_version(catalog_entry.tap_stream_id)
+    activate_version_message = singer.ActivateVersionMessage(
+        stream=catalog_entry.stream,
+        version=stream_version
+    )
 
     for row in data:
         with Transformer() as transformer:
@@ -152,12 +163,17 @@ def sync_endpoint(endpoint, schema, mdata, date_fields = None):
 
             updated_at = rec[REPLICATION_KEY]
             if updated_at >= start:
-                singer.write_record(endpoint,
-                                    rec,
-                                    time_extracted = time_extracted)
-                utils.update_state(STATE, endpoint, updated_at)
+                new_record = singer.RecordMessage(
+                    stream=catalog_entry.stream,
+                    record=rec,
+                    version=stream_version,
+                    time_extracted=time_extracted)
+                singer.write_message(new_record)
+ 
+                utils.update_state(STATE, catalog_entry.tap_stream_id, updated_at)
 
     singer.write_state(STATE)
+    singer.write_message(activate_version_message)
 
 def do_sync(catalog):
     LOGGER.info("Starting sync")
@@ -166,7 +182,7 @@ def do_sync(catalog):
         mdata = metadata.to_map(stream.metadata)
         is_selected = metadata.get(mdata, (), 'selected')
         if is_selected:
-            sync_endpoint(stream.tap_stream_id, stream.schema.to_dict(), mdata)
+            sync_endpoint(stream, stream.schema.to_dict(), mdata)
 
     LOGGER.info("Sync complete")
 

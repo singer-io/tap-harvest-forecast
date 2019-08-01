@@ -13,22 +13,36 @@ Author: Robert Benjamin ([@robertbenjamin](https://github.com/robertbenjamin))
     Clone this repository, and then install using setup.py. We recommend using a virtualenv:
 
     ```bash
-    > virtualenv -p python 3 venv
-    > source venv/bin/activate
-    > python setup.py install
+    virtualenv -p python3 venv
+    source venv/bin/activate
+    python setup.py install
     ```
 
-2. Create your tap's config file which should look like the following:
+2. Retrieve your oauth credentials from the Harvest Forecast API
+    
+    Visit the [developer tools](https://id.getharvest.com/developers) page on
+    Harvest's website and create a new oauth token
+
+    Paste the Client ID you got from the above page in the url of a browser like
+    `https://id.getharvest.com/oauth2/authorize?client_id={OAUTH_CLIENT_ID}&response_type=code`. Now you're
+    able to login, click 'authorize app' and then are redirected to a url like
+    this
+    `https://id.getharvest.com/oauth2/authorize?code={OAUTH_REFRESH_TOKEN}&scope=all`.
+    You will use this `OAUTH_REFRESH_TOKEN` in the following step to configure
+    the oauth application
+
+3. Create your tap's `tap_config.json` file which should look like the following:
 
     ```json
     {
+        "client_id": "OAUTH_CLIENT_ID",
+        "client_secret": "OAUTH_CLIENT_SECRET",
+        "refresh_token": "OAUTH_REFRESH_TOKEN",
         "start_date": "2017-04-19T13:37:30Z",
-        "account_id": "HARVEST_FORECAST_ACCOUNT_ID",
-        "access_token": "HARVEST_FORECAST_PERSONAL_ACCESSS_TOKEN"
+        "user_agent": "tap-harvest-forecast (your.email@example.com)"
     }
-    ```
 
-3. [Optional] Create the initial state file
+4. [Optional] Create the initial state file
 
     ```json
     {
@@ -40,13 +54,35 @@ Author: Robert Benjamin ([@robertbenjamin](https://github.com/robertbenjamin))
     }
     ```
 
-4. Run the application
-
+5. Setup the catalog
+    
     `tap-harvest-forecast` can be run with:
 
     ```bash
-    tap-harvest-forecast --config config.json [--state state.json]
+    tap-harvest-forecast --config tap_config.json [--state state.json]
     ```
+
+    Run the tap in discovery mode to obtain the catalog:
+
+    ```bash
+    tap-harvest-forecast --config tap_config.json --discover > catalog.json
+    ```
+
+    You will need to add metadata in the catalog for stream/field selection, by
+    adding `"selected": true` to the `metadata` for each stream you wish to
+    select in `tap_config.json`
+
+
+6. Run the application
+
+    Run the Tap in sync mode:
+
+    ```bash
+    tap-harvest-forecast --config tap_config.json --catalog catalog.json
+    ```
+
+    The output should consist of SCHEMA, RECORD, STATE, and METRIC messages.
+    If you wish to test the tap with a target, see the [documentation](DOCUMENTATION.md)
 
 ---
 
