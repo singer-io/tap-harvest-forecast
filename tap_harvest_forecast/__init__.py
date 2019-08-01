@@ -26,7 +26,9 @@ ENDPOINTS = [
     "clients",
     "milestones",
     "people",
-    "projects"
+    "projects",
+    "placeholders",
+    "roles"
 ]
 
 PRIMARY_KEY = "id"

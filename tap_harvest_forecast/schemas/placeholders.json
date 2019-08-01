@@ -1,0 +1,44 @@
+{
+    "type": "object",
+    "properties": {
+      "id": {
+        "type": [
+          "null",
+          "integer"
+        ]
+      },
+      "name": {
+        "type": [
+          "null",
+          "string"
+        ]
+      },
+      "archived": {
+        "type": [
+          "null",
+          "boolean"
+        ]
+      },
+      "updated_at": {
+        "type": [
+          "null",
+          "string"
+        ],
+        "format": "date-time"
+      },
+      "updated_by_id": {
+        "type": [
+          "null",
+          "integer"
+        ]
+      },
+      "roles": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      }
+    },
+    "additionalProperties": false
+  }
+  
