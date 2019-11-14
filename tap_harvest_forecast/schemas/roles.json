@@ -25,6 +25,19 @@
           "type": "integer"
         }
       },
+      "updated_at": {
+        "type": [
+          "null",
+          "string"
+        ],
+        "format": "date-time"
+      },
+      "updated_by_id": {
+        "type": [
+          "null",
+          "integer"
+        ]
+      },
       "placeholder_ids": {
         "type": "array",
         "items": {
