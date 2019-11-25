@@ -28,12 +28,11 @@ ENDPOINTS = [
     "milestones",
     "people",
     "projects",
-    "placeholders",
     "roles"
 ]
 
 PRIMARY_KEY = "id"
-REPLICATION_KEY = 'updated_at'
+REPLICATION_KEY = "updated_at"
 
 BASE_URL = "https://api.forecastapp.com/"
 BASE_ID_URL = "https://id.getharvest.com/api/v2/"
@@ -161,7 +160,11 @@ def sync_endpoint(catalog_entry, schema, mdata, date_fields = None):
             rec = transformer.transform(row, schema, mdata)
             append_times_to_dates(rec, date_fields)
 
-            updated_at = rec[REPLICATION_KEY]
+            try:
+                updated_at = rec[REPLICATION_KEY]
+            except KeyError:
+                updated_at = start
+            
             if updated_at >= start:
                 new_record = singer.RecordMessage(
                     stream=catalog_entry.stream,
@@ -194,7 +197,7 @@ def do_discover():
         mdata = metadata.new()
 
         mdata = metadata.write(mdata, (), 'table-key-properties', [PRIMARY_KEY])
-        mdata = metadata.write(mdata, (), 'valid-replication-keys', [REPLICATION_KEY])
+        mdata = metadata.write(mdata, (), 'valid-replication-keys', schema.replication_keys)
 
         for field_name in schema['properties'].keys():
             if field_name == PRIMARY_KEY or field_name == REPLICATION_KEY:
