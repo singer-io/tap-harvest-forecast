@@ -144,9 +144,11 @@ def sync_endpoint(catalog_entry, schema, mdata, date_fields = None):
                         [PRIMARY_KEY],
                         bookmark_properties = [REPLICATION_KEY])
 
-    start = get_start(catalog_entry.tap_stream_id)
+    #start = get_start(catalog_entry.tap_stream_id)
+    start = (utils.now() - datetime.timedelta(days=179)).strftime("%Y-%m-%d")
+    params = {"start_date": start, "end_date": utils.now().strftime("%Y-%m-%d")}
     url = get_url(catalog_entry.tap_stream_id)
-    data = request(url)[catalog_entry.tap_stream_id]
+    data = request(url, params)[catalog_entry.tap_stream_id]
     time_extracted = utils.now()
 
     stream_version = get_stream_version(catalog_entry.tap_stream_id)
