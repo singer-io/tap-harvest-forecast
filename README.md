@@ -86,4 +86,11 @@ Author: Robert Benjamin ([@robertbenjamin](https://github.com/robertbenjamin))
 
 ---
 
+## Common Issues
+If you see a completely blank run, like this: 
+```
+```
+This is caused by the catalog.json not containing `"selected": "true"` in the metadata sections for each stream. 
+Just add that and you're good to go
+
 Copyright &copy; 2018 Stitch
