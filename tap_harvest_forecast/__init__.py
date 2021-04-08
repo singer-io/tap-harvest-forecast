@@ -31,6 +31,7 @@ ENDPOINTS = [
     "roles"
 ]
 
+DATE_FORMAT = "%Y-%m-%d"
 PRIMARY_KEY = "id"
 REPLICATION_KEY = "updated_at"
 
@@ -105,6 +106,12 @@ def get_start(key):
 
     return STATE[key]
 
+def get_end(key):
+    if 'end_date' not in CONFIG:
+        return (utils.now() + datetime.timedelta(days=366*2)).strftime(DATE_FORMAT)
+    else: 
+        return CONFIG['end_date']
+
 def get_url(endpoint):
     return BASE_URL + endpoint
 
@@ -138,20 +145,24 @@ def append_times_to_dates(item, date_fields):
             if item.get(date_field):
                 item[date_field] += "T00:00:00Z"
 
+def window(start, end, width):
+    """
+    Return an iterator which will give a set of tuples with ranges, with no overlap up till the end value
+    """
+    LOGGER.info(f"Start: {start.strftime(DATE_FORMAT)}, End: {end.strftime(DATE_FORMAT)}, width: {width.days}")
+    def dateRange(start, end, step):
+        for n in range(0, int((end - start).days), step.days):
+            yield start + datetime.timedelta(days=n)
+    for x in dateRange(start, end, width):
+        yield (x, min(x + width, end))
+
 def sync_endpoint(catalog_entry, schema, mdata, date_fields = None):
     singer.write_schema(catalog_entry.tap_stream_id,
                         schema,
                         [PRIMARY_KEY],
                         bookmark_properties = [REPLICATION_KEY])
 
-    if (catalog_entry.tap_stream_id == 'assignments'):
-        start = (utils.now() - datetime.timedelta(days=60)).strftime("%Y-%m-%d")
-        params = {"start_date": start, "end_date": (utils.now() + datetime.timedelta(days=119)).strftime("%Y-%m-%d")}
-        url = get_url(catalog_entry.tap_stream_id)
-        data = request(url, params)[catalog_entry.tap_stream_id]
-    else:
-        start = get_start(catalog_entry.tap_stream_id)
-        data = request(url)[catalog_entry.tap_stream_id]
+
     time_extracted = utils.now()
 
     stream_version = get_stream_version(catalog_entry.tap_stream_id)
@@ -159,26 +170,35 @@ def sync_endpoint(catalog_entry, schema, mdata, date_fields = None):
         stream=catalog_entry.stream,
         version=stream_version
     )
+    
+    url = get_url(catalog_entry.tap_stream_id)
+    start = utils.strptime_to_utc(get_start(catalog_entry.tap_stream_id))
+    end = utils.strptime_to_utc(get_end(catalog_entry.tap_stream_id))
+    delta = datetime.timedelta(days=180)
 
-    for row in data:
-        with Transformer() as transformer:
-            rec = transformer.transform(row, schema, mdata)
-            append_times_to_dates(rec, date_fields)
+    try:
+        updated_at = utils.strptime_to_utc(rec[REPLICATION_KEY])
+    except KeyError:
+        updated_at = start
 
-            try:
-                updated_at = rec[REPLICATION_KEY]
-            except KeyError:
-                updated_at = start
-            
-            if updated_at >= start:
-                new_record = singer.RecordMessage(
-                    stream=catalog_entry.stream,
-                    record=rec,
-                    version=stream_version,
-                    time_extracted=time_extracted)
-                singer.write_message(new_record)
- 
-                utils.update_state(STATE, catalog_entry.tap_stream_id, updated_at)
+    # for slice of 180 days in total date range from start date to arbitrary end date, x years into the future?
+    with Transformer() as transformer:
+        for dateStart, dateEnd in window(start, end, delta):
+            params = {"start_date": dateStart.strftime(DATE_FORMAT), "end_date": dateEnd.strftime(DATE_FORMAT)}
+            data = request(url, params)[catalog_entry.tap_stream_id]
+            for row in data:
+                rec = transformer.transform(row, schema, mdata)
+                append_times_to_dates(rec, date_fields)
+
+                if updated_at >= start:
+                    new_record = singer.RecordMessage(
+                        stream=catalog_entry.stream,
+                        record=rec,
+                        version=stream_version,
+                        time_extracted=time_extracted)
+                    singer.write_message(new_record)
+    
+                    utils.update_state(STATE, catalog_entry.tap_stream_id, updated_at)
 
     singer.write_state(STATE)
     singer.write_message(activate_version_message)
@@ -217,6 +237,7 @@ def do_discover():
 
     catalog = {"streams": streams}
     json.dump(catalog, sys.stdout, indent=2)
+
 
 def main_impl():
     args = utils.parse_args(REQUIRED_CONFIG_KEYS)
