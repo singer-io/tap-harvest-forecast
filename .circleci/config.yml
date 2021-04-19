@@ -1,0 +1,26 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: 218546966473.dkr.ecr.us-east-1.amazonaws.com/circle-ci:tap-tester-v4
+    steps:
+      - checkout
+      - run:
+          name: 'Setup virtual env'
+          command: |
+            python3 -mvenv /usr/local/share/virtualenvs/tap-harvest-forecast
+            source /usr/local/share/virtualenvs/tap-harvest-forecast/bin/activate
+            pip install -U pip setuptools
+            pip install .[dev]
+      - run:
+          name: 'JSON Validator'
+          command: |
+            source /usr/local/share/virtualenvs/tap-tester/bin/activate
+            stitch-validate-json tap_harvest_forecast/schemas/*.json
+
+workflows:
+  version: 2
+  commit:
+    jobs:
+      - build:
+          context: circleci-user
