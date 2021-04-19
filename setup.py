@@ -25,7 +25,8 @@ setup(name='tap-harvest-forecast',
             "clients.json",
             "milestones.json",
             "people.json",
-            "projects.json"
+            "projects.json",
+            "roles.json"
           ],
       },
       include_package_data=True
