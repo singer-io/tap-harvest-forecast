@@ -191,7 +191,7 @@ def sync_endpoint(catalog_entry, schema, mdata, date_fields = None):
                 except KeyError:
                     updated_at = dateStart
 
-                if start <= updated_at <= dateEnd and rec["id"] not in ids:
+                if rec["id"] not in ids and updated_at >= start:
                     ids.append(rec["id"])
                     new_record = singer.RecordMessage(
                         stream=catalog_entry.stream,
@@ -201,6 +201,7 @@ def sync_endpoint(catalog_entry, schema, mdata, date_fields = None):
                     singer.write_message(new_record)
 
                     utils.update_state(STATE, catalog_entry.tap_stream_id, updated_at)
+
 
     singer.write_state(STATE)
     singer.write_message(activate_version_message)
