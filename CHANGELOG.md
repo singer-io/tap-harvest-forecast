@@ -1,6 +1,8 @@
 # Changelog
+## 1.1.2
+  *  Bug fix in `sync_endpoints` [#21](https://github.com/singer-io/tap-harvest-forecast/pull/21)
 
-## [v1.1.1](https://github.com/singer-io/tap-harvest-forecast/tree/v1.1.1) (2021-04-19)
+## [1.1.1](https://github.com/singer-io/tap-harvest-forecast/tree/v1.1.1) (2021-04-19)
 
 [Full Changelog](https://github.com/singer-io/tap-harvest-forecast/compare/v1.1.0...v1.1.1)
 
