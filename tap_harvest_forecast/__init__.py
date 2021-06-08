@@ -109,7 +109,7 @@ def get_start(key):
 def get_end(key):
     if 'end_date' not in CONFIG:
         return (utils.now() + datetime.timedelta(days=366*2)).strftime(DATE_FORMAT)
-    else: 
+    else:
         return CONFIG['end_date']
 
 def get_url(endpoint):
@@ -170,18 +170,14 @@ def sync_endpoint(catalog_entry, schema, mdata, date_fields = None):
         stream=catalog_entry.stream,
         version=stream_version
     )
-    
+
     url = get_url(catalog_entry.tap_stream_id)
     start = utils.strptime_to_utc(get_start(catalog_entry.tap_stream_id))
     end = utils.strptime_to_utc(get_end(catalog_entry.tap_stream_id))
     delta = datetime.timedelta(days=180)
 
-    try:
-        updated_at = utils.strptime_to_utc(rec[REPLICATION_KEY])
-    except KeyError:
-        updated_at = start
-
     # for slice of 180 days in total date range from start date to arbitrary end date, x years into the future?
+    ids = []
     with Transformer() as transformer:
         for dateStart, dateEnd in window(start, end, delta):
             params = {"start_date": dateStart.strftime(DATE_FORMAT), "end_date": dateEnd.strftime(DATE_FORMAT)}
@@ -190,15 +186,22 @@ def sync_endpoint(catalog_entry, schema, mdata, date_fields = None):
                 rec = transformer.transform(row, schema, mdata)
                 append_times_to_dates(rec, date_fields)
 
-                if updated_at >= start:
+                try:
+                    updated_at = utils.strptime_to_utc(rec[REPLICATION_KEY])
+                except KeyError:
+                    updated_at = dateStart
+
+                if rec["id"] not in ids and updated_at >= start:
+                    ids.append(rec["id"])
                     new_record = singer.RecordMessage(
                         stream=catalog_entry.stream,
                         record=rec,
                         version=stream_version,
                         time_extracted=time_extracted)
                     singer.write_message(new_record)
-    
+
                     utils.update_state(STATE, catalog_entry.tap_stream_id, updated_at)
+
 
     singer.write_state(STATE)
     singer.write_message(activate_version_message)
