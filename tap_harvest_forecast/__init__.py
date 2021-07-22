@@ -225,7 +225,7 @@ def do_discover():
         mdata = metadata.new()
 
         mdata = metadata.write(mdata, (), 'table-key-properties', [PRIMARY_KEY])
-        mdata = metadata.write(mdata, (), 'valid-replication-keys', schema.replication_keys)
+        mdata = metadata.write(mdata, (), 'valid-replication-keys', [REPLICATION_KEY])
 
         for field_name in schema['properties'].keys():
             if field_name == PRIMARY_KEY or field_name == REPLICATION_KEY:
