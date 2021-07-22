@@ -1,4 +1,10 @@
 # Changelog
+
+## 1.1.3
+  * Bug fixes to get the tap running again successfully [#24](https://github.com/singer-io/tap-harvest-forecast/pull/24)
+    * Reverted change to how replication keys are assigned to fix KeyError
+    * Removed incomplete activate_version feature that was accidentally included
+
 ## 1.1.2
   *  Bug fix in `sync_endpoints` [#21](https://github.com/singer-io/tap-harvest-forecast/pull/21)
 

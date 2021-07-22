@@ -3,7 +3,7 @@
 from setuptools import setup
 
 setup(name='tap-harvest-forecast',
-      version="1.1.2",
+      version="1.1.3",
       description='Singer.io tap for extracting data from the Harvest Forecast api',
       author='Robert Benjamin',
       url='https://github.com/singer-io/tap-harvest-forecast',
