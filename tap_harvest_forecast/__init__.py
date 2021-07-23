@@ -136,9 +136,6 @@ def request(url, params = None):
     return resp.json()
 
 
-def get_stream_version(tap_stream_id):
-    return int(time.time() * 1000)
-
 def append_times_to_dates(item, date_fields):
     if date_fields:
         for date_field in date_fields:
@@ -165,12 +162,6 @@ def sync_endpoint(catalog_entry, schema, mdata, date_fields = None):
 
     time_extracted = utils.now()
 
-    stream_version = get_stream_version(catalog_entry.tap_stream_id)
-    activate_version_message = singer.ActivateVersionMessage(
-        stream=catalog_entry.stream,
-        version=stream_version
-    )
-
     url = get_url(catalog_entry.tap_stream_id)
     start = utils.strptime_to_utc(get_start(catalog_entry.tap_stream_id))
     end = utils.strptime_to_utc(get_end(catalog_entry.tap_stream_id))
@@ -196,7 +187,6 @@ def sync_endpoint(catalog_entry, schema, mdata, date_fields = None):
                     new_record = singer.RecordMessage(
                         stream=catalog_entry.stream,
                         record=rec,
-                        version=stream_version,
                         time_extracted=time_extracted)
                     singer.write_message(new_record)
 
@@ -204,11 +194,9 @@ def sync_endpoint(catalog_entry, schema, mdata, date_fields = None):
 
 
     singer.write_state(STATE)
-    singer.write_message(activate_version_message)
 
 def do_sync(catalog):
     LOGGER.info("Starting sync")
-
     for stream in catalog.streams:
         mdata = metadata.to_map(stream.metadata)
         is_selected = metadata.get(mdata, (), 'selected')
@@ -225,7 +213,7 @@ def do_discover():
         mdata = metadata.new()
 
         mdata = metadata.write(mdata, (), 'table-key-properties', [PRIMARY_KEY])
-        mdata = metadata.write(mdata, (), 'valid-replication-keys', schema.replication_keys)
+        mdata = metadata.write(mdata, (), 'valid-replication-keys', [REPLICATION_KEY])
 
         for field_name in schema['properties'].keys():
             if field_name == PRIMARY_KEY or field_name == REPLICATION_KEY:
