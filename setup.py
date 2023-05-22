@@ -11,7 +11,7 @@ setup(name='tap-harvest-forecast',
       py_modules=['tap_harvest_forecast'],
       install_requires=[
           'singer-python==5.1.5',
-          'requests==2.20.0',
+          'requests==2.31.0',
           'backoff==1.3.2'
       ],
       entry_points='''
