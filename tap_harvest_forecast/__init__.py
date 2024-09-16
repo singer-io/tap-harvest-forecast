@@ -167,11 +167,19 @@ def sync_endpoint(catalog_entry, schema, mdata, date_fields = None):
     end = utils.strptime_to_utc(get_end(catalog_entry.tap_stream_id))
     delta = datetime.timedelta(days=180)
 
+    if catalog_entry.tap_stream_id == 'assignments':
+        date_range = window(start, end, delta)
+    else:
+        date_range = [(start, None)]
+
     # for slice of 180 days in total date range from start date to arbitrary end date, x years into the future?
     ids = []
     with Transformer() as transformer:
-        for dateStart, dateEnd in window(start, end, delta):
-            params = {"start_date": dateStart.strftime(DATE_FORMAT), "end_date": dateEnd.strftime(DATE_FORMAT)}
+        for dateStart, dateEnd in date_range:
+            params = {"start_date": dateStart.strftime(DATE_FORMAT)}
+            if dateEnd:
+                params["end_date"] = dateEnd.strftime(DATE_FORMAT)
+
             data = request(url, params)[catalog_entry.tap_stream_id]
             for row in data:
                 rec = transformer.transform(row, schema, mdata)
