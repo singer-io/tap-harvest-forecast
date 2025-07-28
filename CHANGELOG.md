@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.2.0
+  * Updates `backoff`, `requests` and `singer-python` to 2.2.1, 2.32.4 and 6.1.1  [#29](https://github.com/singer-io/tap-harvest-forecast/pull/29)
+
 ## 1.1.4
   * Dependabot update [#25](https://github.com/singer-io/tap-harvest-forecast/pull/25)
 
