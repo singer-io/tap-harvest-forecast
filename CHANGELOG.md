@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.1.5
+  * Bump dependencies for compliance [#31](https://github.com/singer-io/tap-harvest-forecast/pull/31)
+
 ## 1.1.4
   * Dependabot update [#25](https://github.com/singer-io/tap-harvest-forecast/pull/25)
 
