@@ -56,7 +56,10 @@
       ]
     },
     "roles": {
-      "type": "array",
+      "type": [
+        "null",
+        "array"
+      ],
       "items": {
         "type": "string"
       }
@@ -87,7 +90,10 @@
       ]
     },
     "working_days": {
-      "type": "object",
+      "type": [
+        "null",
+        "object"
+      ],
       "properties": {
         "monday": {
           "type": [

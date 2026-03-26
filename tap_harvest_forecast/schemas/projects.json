@@ -77,7 +77,10 @@
       ]
     },
     "tags": {
-      "type": "array",
+      "type": [
+        "null",
+        "array"
+      ],
       "items": {
         "type": "string"
       }

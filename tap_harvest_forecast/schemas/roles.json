@@ -20,7 +20,10 @@
         ]
       },
       "person_ids": {
-        "type": "array",
+        "type": [
+          "null",
+          "array"
+        ],
         "items": {
           "type": "integer"
         }
@@ -39,7 +42,10 @@
         ]
       },
       "placeholder_ids": {
-        "type": "array",
+        "type": [
+          "null",
+          "array"
+        ],
         "items": {
           "type": "integer"
         }

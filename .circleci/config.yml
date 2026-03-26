@@ -17,6 +17,11 @@ jobs:
           command: |
             source /usr/local/share/virtualenvs/tap-tester/bin/activate
             stitch-validate-json tap_harvest_forecast/schemas/*.json
+      - run:
+          name: 'Unit Tests + Integration Tests'
+          command: |
+            source /usr/local/share/virtualenvs/tap-harvest-forecast/bin/activate
+            python -m unittest discover -s tests -v
 
 workflows:
   version: 2
