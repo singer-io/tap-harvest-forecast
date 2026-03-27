@@ -377,7 +377,7 @@ class TestGetUrl(unittest.TestCase):
 class TestSyncEndpoint(unittest.TestCase):
     def setUp(self):
         self._state_patcher = patch.dict(thf.STATE, {}, clear=True)
-        self._config_patcher = patch.dict(thf.CONFIG, {"start_date": "2024-01-01T00:00:00Z"}, clear=True)
+        self._config_patcher = patch.dict(thf.CONFIG, {"start_date": "2024-01-01T00:00:00Z", "end_date": "2024-12-31"}, clear=True)
         self._auth_patcher = patch.object(thf, 'AUTH', _make_mock_auth())
         self._state_patcher.start()
         self._config_patcher.start()

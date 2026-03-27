@@ -13,6 +13,7 @@ class HarvestForecastBaseTest:
     # Mock configuration
     MOCK_CONFIG = {
         "start_date": "2024-01-01T00:00:00Z",
+        "end_date": "2024-12-31",
         "account_id": "test_account_123",
         "client_id": "test_client_id",
         "client_secret": "test_client_secret",
