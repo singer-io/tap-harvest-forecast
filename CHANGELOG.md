@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0
+  * Upgrade `singer-python`, `requests` and `backoff` to latest version
+  * Add unit tests and mocked integration tests [#32](https://github.com/singer-io/tap-harvest-forecast/pull/32)
+
 ## 1.1.5
   * Bump dependencies for compliance [#31](https://github.com/singer-io/tap-harvest-forecast/pull/31)
 
