@@ -12,7 +12,13 @@ class HarvestForecastInterruptedSyncTest(InterruptedSyncTest, HarvestForecastBas
 
     def streams_to_test(self):
         # Exclude roles stream as it's missing updated_at field in data
-        streams_to_exclude = {'roles'}
+        # assignments, milestones: API date-range param filters by activity dates
+        # independently of updated_at.
+        streams_to_exclude = {
+            "roles",
+            "assignments",
+            "milestones"
+        }
         return self.expected_stream_names().difference(streams_to_exclude)
 
     def manipulate_state(self):
@@ -22,12 +28,9 @@ class HarvestForecastInterruptedSyncTest(InterruptedSyncTest, HarvestForecastBas
         that the tap can resume from where it left off.
         """
         return {
-            "currently_syncing": "milestones",
+            "currently_syncing": "people",
             "bookmarks": {
-                "assignments": {"updated_at": "2026-04-15T00:00:00Z"},
-                "clients": {"updated_at": "2026-05-01T00:00:00Z"},
-                # milestones is "currently_syncing" - partial bookmark
-                "milestones": {"updated_at": "2026-05-10T00:00:00Z"},
-                # Streams after milestones should not have bookmarks from this sync
+                "clients": {"updated_at": "2026-05-06T00:00:00Z"},
+                "people": {"updated_at": "2026-05-06T00:00:00Z"},
             }
         }

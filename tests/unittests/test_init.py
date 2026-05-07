@@ -75,7 +75,7 @@ class TestGetStart(unittest.TestCase):
 
     def test_sets_state_key_when_missing(self):
         thf.get_start("clients")
-        self.assertIn("clients", thf.STATE)
+        self.assertIn("clients", thf.STATE.get("bookmarks", {}))
 
     def test_does_not_overwrite_existing_state(self):
         thf.STATE["roles"] = "2025-01-01T00:00:00Z"

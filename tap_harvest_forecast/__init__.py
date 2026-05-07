@@ -205,12 +205,33 @@ def sync_endpoint(catalog_entry, schema, mdata, date_fields = None):
 
 def do_sync(catalog):
     LOGGER.info("Starting sync")
+
+    selected_streams = []
     for stream in catalog.streams:
         mdata = metadata.to_map(stream.metadata)
-        is_selected = metadata.get(mdata, (), 'selected')
-        if is_selected:
-            sync_endpoint(stream, stream.schema.to_dict(), mdata)
+        if metadata.get(mdata, (), 'selected'):
+            selected_streams.append(stream)
 
+    # Sort streams alphabetically by tap_stream_id
+    selected_streams.sort(key=lambda s: s.tap_stream_id)
+
+    currently_syncing = STATE.get('currently_syncing')
+    if currently_syncing:
+        # Find the index of the currently_syncing stream and reorder:
+        # interrupted stream first, then remaining in order
+        stream_ids = [s.tap_stream_id for s in selected_streams]
+        if currently_syncing in stream_ids:
+            idx = stream_ids.index(currently_syncing)
+            selected_streams = selected_streams[idx:] + selected_streams[:idx]
+
+    for stream in selected_streams:
+        STATE['currently_syncing'] = stream.tap_stream_id
+        singer.write_state(STATE)
+        sync_endpoint(stream, stream.schema.to_dict(),
+                      metadata.to_map(stream.metadata))
+
+    STATE.pop('currently_syncing', None)
+    singer.write_state(STATE)
     LOGGER.info("Sync complete")
 
 def do_discover():

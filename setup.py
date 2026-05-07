@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 
-from setuptools import setup
+from setuptools import find_packages, setup
 
 setup(name='tap-harvest-forecast',
       version="1.2.0",
@@ -14,20 +14,19 @@ setup(name='tap-harvest-forecast',
           'requests==2.33.0',
           'backoff==2.2.1'
       ],
+      extras_require={
+        "dev": [
+            "pytest",
+            "coverage",
+        ]
+    },
       entry_points='''
           [console_scripts]
           tap-harvest-forecast=tap_harvest_forecast:main
       ''',
-      packages=['tap_harvest_forecast'],
+      packages=find_packages(),
       package_data = {
-          'tap_harvest_forecast/schemas': [
-            "assignments.json",
-            "clients.json",
-            "milestones.json",
-            "people.json",
-            "projects.json",
-            "roles.json"
-          ],
+          'tap_harvest_forecast': ['schemas/*.json'],
       },
       include_package_data=True
 )
