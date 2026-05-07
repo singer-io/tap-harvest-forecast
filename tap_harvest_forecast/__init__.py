@@ -101,9 +101,13 @@ def load_schema(entity):
 
 
 def get_start(key):
+    bookmark = STATE.get('bookmarks', {}).get(key, {}).get(REPLICATION_KEY)
+    if bookmark:
+        return bookmark
+    # Fall back to flat format for backwards compatibility
     if key not in STATE:
-        STATE[key] = CONFIG['start_date']
-
+        STATE.setdefault('bookmarks', {}).setdefault(key, {})[REPLICATION_KEY] = CONFIG['start_date']
+        return CONFIG['start_date']
     return STATE[key]
 
 def get_end(key):
@@ -190,7 +194,11 @@ def sync_endpoint(catalog_entry, schema, mdata, date_fields = None):
                         time_extracted=time_extracted)
                     singer.write_message(new_record)
 
-                    utils.update_state(STATE, catalog_entry.tap_stream_id, updated_at)
+                    STATE.setdefault('bookmarks', {}).setdefault(catalog_entry.tap_stream_id, {})
+                    current = STATE['bookmarks'][catalog_entry.tap_stream_id].get(REPLICATION_KEY, '')
+                    new_val = utils.strftime(updated_at)
+                    if not current or new_val >= current:
+                        STATE['bookmarks'][catalog_entry.tap_stream_id][REPLICATION_KEY] = new_val
 
 
     singer.write_state(STATE)
@@ -212,11 +220,17 @@ def do_discover():
 
         mdata = metadata.new()
 
+        has_replication_key = REPLICATION_KEY in schema['properties']
+
         mdata = metadata.write(mdata, (), 'table-key-properties', [PRIMARY_KEY])
-        mdata = metadata.write(mdata, (), 'valid-replication-keys', [REPLICATION_KEY])
+        if has_replication_key:
+            mdata = metadata.write(mdata, (), 'valid-replication-keys', [REPLICATION_KEY])
+            mdata = metadata.write(mdata, (), 'forced-replication-method', 'INCREMENTAL')
+        else:
+            mdata = metadata.write(mdata, (), 'forced-replication-method', 'FULL_TABLE')
 
         for field_name in schema['properties'].keys():
-            if field_name == PRIMARY_KEY or field_name == REPLICATION_KEY:
+            if field_name == PRIMARY_KEY or (has_replication_key and field_name == REPLICATION_KEY):
                 mdata = metadata.write(mdata, ('properties', field_name), 'inclusion', 'automatic')
             else:
                 mdata = metadata.write(mdata, ('properties', field_name), 'inclusion', 'available')
