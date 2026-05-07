@@ -6,9 +6,7 @@ from tap_tester.base_suite_tests.all_fields_test import AllFieldsTest
 class HarvestForecastAllFieldsTest(AllFieldsTest, HarvestForecastBaseTest):
     """Ensure running the tap with all streams and fields selected results in
     the replication of all fields."""
-    MISSING_FIELDS = {
-        'roles': {'updated_at', 'updated_by_id'}
-    }
+    MISSING_FIELDS = {}
 
     @staticmethod
     def name():
