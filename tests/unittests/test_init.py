@@ -1,6 +1,8 @@
 """Unit tests for tap_harvest_forecast.__init__"""
-import datetime
+import sys
 import os
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
+import datetime
 import unittest
 import requests
 from unittest.mock import MagicMock, patch
