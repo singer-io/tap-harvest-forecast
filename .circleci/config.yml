@@ -34,15 +34,34 @@ jobs:
           path: test_output/report.xml
       - store_artifacts:
           path: htmlcov
+      # ----------------------------------------------------------------
+      # Integration Tests — controlled by USE_TAPTESTER env variable.
+      #
+      # Default (USE_TAPTESTER unset or "false"):
+      #   Runs mocked integration tests (no API calls, no credentials).
+      #   Tests live in tests/mock_integration/ and exercise real tap
+      #   code with a mocked Forecast API.
+      #
+      # To enable tap-tester (real API):
+      #   Set USE_TAPTESTER=true in the CircleCI project environment
+      #   variables or in the "circleci-user" context.  This requires
+      #   valid Harvest Forecast API credentials in the tap-tester sandbox.
+      # ----------------------------------------------------------------
       - run:
           name: "Integration Tests"
           command: |
-            source /usr/local/share/virtualenvs/tap-tester/bin/activate
-            uv pip install --upgrade awscli
-            aws s3 cp s3://com-stitchdata-dev-deployment-assets/environments/tap-tester/tap_tester_sandbox dev_env.sh
-            source dev_env.sh
-            unset USE_STITCH_BACKEND
-            run-test --tap=tap-harvest-forecast tests
+            if [ "$USE_TAPTESTER" = "true" ]; then
+              source /usr/local/share/virtualenvs/tap-tester/bin/activate
+              uv pip install --upgrade awscli
+              aws s3 cp s3://com-stitchdata-dev-deployment-assets/environments/tap-tester/tap_tester_sandbox dev_env.sh
+              source dev_env.sh
+              unset USE_STITCH_BACKEND
+              run-test --tap=tap-harvest-forecast tests
+            else
+              source /usr/local/share/virtualenvs/tap-harvest-forecast/bin/activate
+              uv pip install pytest
+              python -m pytest tests/mock_integration/ -v
+            fi
 
 workflows:
   version: 2
