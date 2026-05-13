@@ -34,34 +34,25 @@ jobs:
           path: test_output/report.xml
       - store_artifacts:
           path: htmlcov
-      # ----------------------------------------------------------------
-      # Integration Tests — controlled by USE_TAPTESTER env variable.
-      #
-      # Default (USE_TAPTESTER unset or any value other than "false"):
-      #   Runs live tap-tester tests against the real Harvest Forecast API.
-      #   Requires valid credentials in the tap-tester sandbox (fetched from S3).
-      #
-      # To run mocked integration tests instead (no credentials required):
-      #   Set USE_TAPTESTER=false in the CircleCI project environment variables.
-      #   Mocked tests live in tests/mock_integration/ and exercise real tap
-      #   code with a mocked Forecast API — useful for local dev or PRs without
-      #   sandbox access.
-      # ----------------------------------------------------------------
+      - run:
+          name: "Mock Integration Tests"
+          command: |
+            source /usr/local/share/virtualenvs/tap-harvest-forecast/bin/activate
+            uv pip install pytest
+            python -m pytest tests/mock_integration/ -v
       - run:
           name: "Integration Tests"
           command: |
-            if [ "$USE_TAPTESTER" = "false" ]; then
-              source /usr/local/share/virtualenvs/tap-harvest-forecast/bin/activate
-              uv pip install pytest
-              python -m pytest tests/mock_integration/ -v
-            else
-              source /usr/local/share/virtualenvs/tap-tester/bin/activate
-              uv pip install --upgrade awscli
-              aws s3 cp s3://com-stitchdata-dev-deployment-assets/environments/tap-tester/tap_tester_sandbox dev_env.sh
-              source dev_env.sh
-              unset USE_STITCH_BACKEND
-              run-test --tap=tap-harvest-forecast tests
-            fi
+            source /usr/local/share/virtualenvs/tap-tester/bin/activate
+            uv pip install --upgrade awscli
+            aws s3 cp s3://com-stitchdata-dev-deployment-assets/environments/tap-tester/tap_tester_sandbox dev_env.sh
+            source dev_env.sh
+            unset USE_STITCH_BACKEND
+            # Temporarily move mock_integration out of the tests/ tree so that
+            # run-test does not discover it
+            mv tests/mock_integration /tmp/mock_integration_backup
+            run-test --tap=tap-harvest-forecast tests
+            mv /tmp/mock_integration_backup tests/mock_integration
 
 workflows:
   version: 2
