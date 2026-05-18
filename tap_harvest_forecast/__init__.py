@@ -101,9 +101,13 @@ def load_schema(entity):
 
 
 def get_start(key):
+    bookmark = STATE.get('bookmarks', {}).get(key, {}).get(REPLICATION_KEY)
+    if bookmark:
+        return bookmark
+    # Fall back to flat format for backwards compatibility
     if key not in STATE:
-        STATE[key] = CONFIG['start_date']
-
+        STATE.setdefault('bookmarks', {}).setdefault(key, {})[REPLICATION_KEY] = CONFIG['start_date']
+        return CONFIG['start_date']
     return STATE[key]
 
 def get_end(key):
@@ -190,19 +194,44 @@ def sync_endpoint(catalog_entry, schema, mdata, date_fields = None):
                         time_extracted=time_extracted)
                     singer.write_message(new_record)
 
-                    utils.update_state(STATE, catalog_entry.tap_stream_id, updated_at)
+                    STATE.setdefault('bookmarks', {}).setdefault(catalog_entry.tap_stream_id, {})
+                    current = STATE['bookmarks'][catalog_entry.tap_stream_id].get(REPLICATION_KEY, '')
+                    new_val = utils.strftime(updated_at)
+                    if not current or new_val >= current:
+                        STATE['bookmarks'][catalog_entry.tap_stream_id][REPLICATION_KEY] = new_val
 
 
     singer.write_state(STATE)
 
 def do_sync(catalog):
     LOGGER.info("Starting sync")
+
+    selected_streams = []
     for stream in catalog.streams:
         mdata = metadata.to_map(stream.metadata)
-        is_selected = metadata.get(mdata, (), 'selected')
-        if is_selected:
-            sync_endpoint(stream, stream.schema.to_dict(), mdata)
+        if metadata.get(mdata, (), 'selected'):
+            selected_streams.append(stream)
 
+    # Sort streams alphabetically by tap_stream_id
+    selected_streams.sort(key=lambda s: s.tap_stream_id)
+
+    currently_syncing = STATE.get('currently_syncing')
+    if currently_syncing:
+        # Find the index of the currently_syncing stream and reorder:
+        # interrupted stream first, then remaining in order
+        stream_ids = [s.tap_stream_id for s in selected_streams]
+        if currently_syncing in stream_ids:
+            idx = stream_ids.index(currently_syncing)
+            selected_streams = selected_streams[idx:] + selected_streams[:idx]
+
+    for stream in selected_streams:
+        STATE['currently_syncing'] = stream.tap_stream_id
+        singer.write_state(STATE)
+        sync_endpoint(stream, stream.schema.to_dict(),
+                      metadata.to_map(stream.metadata))
+
+    STATE.pop('currently_syncing', None)
+    singer.write_state(STATE)
     LOGGER.info("Sync complete")
 
 def do_discover():
@@ -212,11 +241,17 @@ def do_discover():
 
         mdata = metadata.new()
 
+        has_replication_key = REPLICATION_KEY in schema['properties']
+
         mdata = metadata.write(mdata, (), 'table-key-properties', [PRIMARY_KEY])
-        mdata = metadata.write(mdata, (), 'valid-replication-keys', [REPLICATION_KEY])
+        if has_replication_key:
+            mdata = metadata.write(mdata, (), 'valid-replication-keys', [REPLICATION_KEY])
+            mdata = metadata.write(mdata, (), 'forced-replication-method', 'INCREMENTAL')
+        else:
+            mdata = metadata.write(mdata, (), 'forced-replication-method', 'FULL_TABLE')
 
         for field_name in schema['properties'].keys():
-            if field_name == PRIMARY_KEY or field_name == REPLICATION_KEY:
+            if field_name == PRIMARY_KEY or (has_replication_key and field_name == REPLICATION_KEY):
                 mdata = metadata.write(mdata, ('properties', field_name), 'inclusion', 'automatic')
             else:
                 mdata = metadata.write(mdata, ('properties', field_name), 'inclusion', 'available')

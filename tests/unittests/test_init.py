@@ -1,6 +1,8 @@
 """Unit tests for tap_harvest_forecast.__init__"""
-import datetime
+import sys
 import os
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
+import datetime
 import unittest
 import requests
 from unittest.mock import MagicMock, patch
@@ -42,11 +44,18 @@ class TestLoadSchema(unittest.TestCase):
                 self.assertIn("properties", schema)
 
     def test_schema_contains_id_and_updated_at(self):
-        for endpoint in thf.ENDPOINTS:
+        # roles is FULL_TABLE and has no updated_at replication key
+        incremental_endpoints = [e for e in thf.ENDPOINTS if e != "roles"]
+        for endpoint in incremental_endpoints:
             with self.subTest(endpoint=endpoint):
                 schema = thf.load_schema(endpoint)
                 self.assertIn("id", schema["properties"])
                 self.assertIn("updated_at", schema["properties"])
+
+    def test_roles_schema_has_no_updated_at(self):
+        schema = thf.load_schema("roles")
+        self.assertIn("id", schema["properties"])
+        self.assertNotIn("updated_at", schema["properties"])
 
     def test_missing_schema_raises(self):
         with self.assertRaises(Exception):
@@ -75,7 +84,7 @@ class TestGetStart(unittest.TestCase):
 
     def test_sets_state_key_when_missing(self):
         thf.get_start("clients")
-        self.assertIn("clients", thf.STATE)
+        self.assertIn("clients", thf.STATE.get("bookmarks", {}))
 
     def test_does_not_overwrite_existing_state(self):
         thf.STATE["roles"] = "2025-01-01T00:00:00Z"
@@ -334,9 +343,11 @@ class TestDoDiscover(unittest.TestCase):
         for stream in catalog_arg["streams"]:
             breadcrumb_map = {tuple(m["breadcrumb"]): m["metadata"] for m in stream["metadata"]}
             id_key = ("properties", "id")
-            updated_at_key = ("properties", "updated_at")
             self.assertEqual(breadcrumb_map[id_key]["inclusion"], "automatic")
-            self.assertEqual(breadcrumb_map[updated_at_key]["inclusion"], "automatic")
+            # roles is FULL_TABLE — no updated_at replication key
+            if stream["tap_stream_id"] != "roles":
+                updated_at_key = ("properties", "updated_at")
+                self.assertEqual(breadcrumb_map[updated_at_key]["inclusion"], "automatic")
 
 
 class TestConstants(unittest.TestCase):
