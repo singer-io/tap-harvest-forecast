@@ -1,33 +1,32 @@
 #!/usr/bin/env python3
 
-from setuptools import setup
+from setuptools import find_packages, setup
 
 setup(name='tap-harvest-forecast',
-      version="1.1.5",
+      version="1.2.0",
       description='Singer.io tap for extracting data from the Harvest Forecast api',
       author='Robert Benjamin',
       url='https://github.com/singer-io/tap-harvest-forecast',
       classifiers=['Programming Language :: Python :: 3 :: Only'],
       py_modules=['tap_harvest_forecast'],
       install_requires=[
-          'singer-python==5.14.3',
-          'requests==2.32.5',
-          'backoff==1.10.0'
+          'singer-python==6.8.0',
+          'requests==2.33.0',
+          'backoff==2.2.1'
       ],
+      extras_require={
+        "dev": [
+            "pytest",
+            "coverage",
+        ]
+    },
       entry_points='''
           [console_scripts]
           tap-harvest-forecast=tap_harvest_forecast:main
       ''',
-      packages=['tap_harvest_forecast'],
+      packages=find_packages(),
       package_data = {
-          'tap_harvest_forecast/schemas': [
-            "assignments.json",
-            "clients.json",
-            "milestones.json",
-            "people.json",
-            "projects.json",
-            "roles.json"
-          ],
+          'tap_harvest_forecast': ['schemas/*.json'],
       },
       include_package_data=True
 )
