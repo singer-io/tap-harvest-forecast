@@ -1,6 +1,7 @@
 """Unit tests for tap_harvest_forecast.__init__"""
 import sys
 import os
+import io
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
 import datetime
 import json
@@ -585,7 +586,7 @@ class TestCheckStreamAccess(unittest.TestCase):
     def tearDown(self):
         self._auth_patcher.stop()
 
-    def _make_403_error(self, url="https://api.forecastapp.com/assignments"):
+    def _make_403_error(self):
         resp = MagicMock()
         resp.status_code = 403
         exc = requests.exceptions.HTTPError(response=resp)
@@ -698,25 +699,21 @@ class TestDoDiscoverAccessChecks(unittest.TestCase):
 
     def test_discover_includes_only_accessible_streams(self):
         accessible = ["assignments", "clients"]
+        captured = io.StringIO()
         with patch.object(thf, "_get_accessible_endpoints", return_value=accessible), \
-             patch("sys.stdout"):
-            import io
-            captured = io.StringIO()
-            with patch("sys.stdout", captured):
-                thf.do_discover()
-            catalog = json.loads(captured.getvalue())
+             patch("sys.stdout", captured):
+            thf.do_discover()
+        catalog = json.loads(captured.getvalue())
 
         stream_ids = [s["tap_stream_id"] for s in catalog["streams"]]
         self.assertEqual(set(stream_ids), {"assignments", "clients"})
 
     def test_discover_with_all_accessible_streams(self):
+        captured = io.StringIO()
         with patch.object(thf, "_get_accessible_endpoints", return_value=thf.ENDPOINTS), \
-             patch("sys.stdout"):
-            import io
-            captured = io.StringIO()
-            with patch("sys.stdout", captured):
-                thf.do_discover()
-            catalog = json.loads(captured.getvalue())
+             patch("sys.stdout", captured):
+            thf.do_discover()
+        catalog = json.loads(captured.getvalue())
 
         stream_ids = [s["tap_stream_id"] for s in catalog["streams"]]
         self.assertEqual(set(stream_ids), set(thf.ENDPOINTS))
