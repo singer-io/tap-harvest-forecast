@@ -161,9 +161,7 @@ def _get_accessible_endpoints(endpoints):
 
     if not accessible_endpoints:
         raise ForecastForbiddenError(
-            "HTTP-error-code: 403, Error: The account credentials supplied do not have "
-            "'read' access to any of the streams supported by the tap. "
-            "Data collection cannot be initiated due to lack of permissions."
+            "The account credentials do not have access to any of the supported streams."
         )
 
     if inaccessible_endpoints:

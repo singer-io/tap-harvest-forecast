@@ -659,7 +659,7 @@ class TestGetAccessibleEndpoints(unittest.TestCase):
         with patch.object(thf, "check_stream_access", return_value=False):
             with self.assertRaises(thf.ForecastForbiddenError) as ctx:
                 thf._get_accessible_endpoints(self.ALL_ENDPOINTS)
-        self.assertIn("403", str(ctx.exception))
+        self.assertIn("supported streams", str(ctx.exception))
 
     def test_partial_access_does_not_raise(self):
         def access_side_effect(ep):
