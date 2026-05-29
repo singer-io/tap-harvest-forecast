@@ -1,9 +1,9 @@
 # Changelog
 
-## 1.2.1
-  * Streams the credentials cannot access (403 Forbidden) are now excluded from the catalog during discovery instead of raising an error [#35](https://github.com/singer-io/tap-harvest-forecast/pull/35)
-  * If no streams are accessible, discovery raises a clear `ForecastForbiddenError` rather than producing an empty catalog
-  * Added unit tests for `check_stream_access`, `_get_accessible_endpoints`, and access-aware discovery
+## 1.3.0
+  * Exclude 403-forbidden streams from discovery instead of failing [#35](https://github.com/singer-io/tap-harvest-forecast/pull/35)
+  * Raise ForecastForbiddenError when no streams are accessible
+  * Added unit tests for access-aware discovery helpers
 
 ## 1.2.0
   * Upgrade `singer-python`, `requests` and `backoff` to latest version

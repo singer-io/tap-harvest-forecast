@@ -154,25 +154,26 @@ def _get_accessible_endpoints(endpoints):
     Raises ForecastForbiddenError when every endpoint is inaccessible so that
     discovery fails fast rather than producing an empty catalog.
     """
-    accessible = []
-    inaccessible = []
+    accessible_endpoints = []
+    inaccessible_endpoints = []
     for ep in endpoints:
-        (accessible if check_stream_access(ep) else inaccessible).append(ep)
+        (accessible_endpoints if check_stream_access(ep) else inaccessible_endpoints).append(ep)
 
-    if inaccessible:
-        if not accessible:
-            raise ForecastForbiddenError(
-                "HTTP-error-code: 403, Error: The account credentials supplied do not have "
-                "'read' access to any of the streams supported by the tap. "
-                "Data collection cannot be initiated due to lack of permissions."
-            )
+    if not accessible_endpoints:
+        raise ForecastForbiddenError(
+            "HTTP-error-code: 403, Error: The account credentials supplied do not have "
+            "'read' access to any of the streams supported by the tap. "
+            "Data collection cannot be initiated due to lack of permissions."
+        )
+
+    if inaccessible_endpoints:
         LOGGER.warning(
             "The account credentials supplied do not have 'read' access to the "
             "following stream(s): %s. These streams have been excluded from the catalog.",
-            ", ".join(inaccessible),
+            ", ".join(inaccessible_endpoints),
         )
 
-    return accessible
+    return accessible_endpoints
 
 
 @backoff.on_exception(
