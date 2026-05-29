@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.0
+  * Exclude 403-forbidden streams from discovery instead of failing [#35](https://github.com/singer-io/tap-harvest-forecast/pull/35)
+  * Raise ForecastForbiddenError when no streams are accessible
+  * Added unit tests for access-aware discovery helpers
+
 ## 1.2.0
   * Upgrade `singer-python`, `requests` and `backoff` to latest version
   * Add unit tests and mocked integration tests [#32](https://github.com/singer-io/tap-harvest-forecast/pull/32)

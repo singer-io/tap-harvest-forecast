@@ -14,6 +14,12 @@ import time
 
 LOGGER = singer.get_logger()
 SESSION = requests.Session()
+
+
+class ForecastForbiddenError(Exception):
+    """Raised when the API returns 403 Forbidden for a stream endpoint."""
+
+
 REQUIRED_CONFIG_KEYS = [
     "start_date",
     "account_id",
@@ -118,6 +124,55 @@ def get_end(key):
 
 def get_url(endpoint):
     return BASE_URL + endpoint
+
+
+def check_stream_access(endpoint):
+    """Probe an endpoint with a minimal date-window request to verify read access.
+
+    Returns True if the credentials have access, False if the API responds with
+    403 Forbidden.  All other HTTP errors are re-raised.
+    """
+    today = utils.now().strftime(DATE_FORMAT)
+    url = get_url(endpoint)
+    try:
+        request(url, params={"start_date": today, "end_date": today})
+        return True
+    except requests.exceptions.HTTPError as exc:
+        if exc.response is not None and exc.response.status_code == 403:
+            LOGGER.warning(
+                "Stream '%s' is not accessible with the provided credentials (403 Forbidden). "
+                "Excluding from catalog.",
+                endpoint,
+            )
+            return False
+        raise
+
+
+def _get_accessible_endpoints(endpoints):
+    """Return the subset of endpoints the credentials can read.
+
+    Raises ForecastForbiddenError when every endpoint is inaccessible so that
+    discovery fails fast rather than producing an empty catalog.
+    """
+    accessible_endpoints = []
+    inaccessible_endpoints = []
+    for ep in endpoints:
+        (accessible_endpoints if check_stream_access(ep) else inaccessible_endpoints).append(ep)
+
+    if not accessible_endpoints:
+        raise ForecastForbiddenError(
+            "The account credentials do not have access to any of the supported streams."
+        )
+
+    if inaccessible_endpoints:
+        LOGGER.warning(
+            "The account credentials supplied do not have 'read' access to the "
+            "following stream(s): %s. These streams have been excluded from the catalog.",
+            ", ".join(inaccessible_endpoints),
+        )
+
+    return accessible_endpoints
+
 
 @backoff.on_exception(
     backoff.expo,
@@ -235,8 +290,9 @@ def do_sync(catalog):
     LOGGER.info("Sync complete")
 
 def do_discover():
+    accessible_endpoints = _get_accessible_endpoints(ENDPOINTS)
     streams = []
-    for endpoint in ENDPOINTS:
+    for endpoint in accessible_endpoints:
         schema = load_schema(endpoint)
 
         mdata = metadata.new()

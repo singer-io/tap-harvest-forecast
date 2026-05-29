@@ -1,8 +1,10 @@
 """Unit tests for tap_harvest_forecast.__init__"""
 import sys
 import os
+import io
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..'))
 import datetime
+import json
 import unittest
 import requests
 from unittest.mock import MagicMock, patch
@@ -299,6 +301,15 @@ class TestRequestFunction(unittest.TestCase):
 
 
 class TestDoDiscover(unittest.TestCase):
+    def setUp(self):
+        self._access_patcher = patch.object(
+            thf, "_get_accessible_endpoints", return_value=thf.ENDPOINTS
+        )
+        self._access_patcher.start()
+
+    def tearDown(self):
+        self._access_patcher.stop()
+
     def test_outputs_valid_catalog_json(self):
         captured = []
         with patch("sys.stdout", new_callable=lambda: type("W", (), {"write": lambda s, x: captured.append(x), "flush": lambda s: None})()):
@@ -559,3 +570,156 @@ class TestMainImpl(unittest.TestCase):
         with patch.object(thf, "main_impl", side_effect=RuntimeError("boom")):
             with self.assertRaises(RuntimeError):
                 thf.main()
+
+
+# ---------------------------------------------------------------------------
+# Tests for check_stream_access
+# ---------------------------------------------------------------------------
+
+class TestCheckStreamAccess(unittest.TestCase):
+    """Unit tests for check_stream_access()."""
+
+    def setUp(self):
+        self._auth_patcher = patch.object(thf, "AUTH", _make_mock_auth())
+        self._auth_patcher.start()
+
+    def tearDown(self):
+        self._auth_patcher.stop()
+
+    def _make_403_error(self):
+        resp = MagicMock()
+        resp.status_code = 403
+        exc = requests.exceptions.HTTPError(response=resp)
+        return exc
+
+    def test_returns_true_when_request_succeeds(self):
+        with patch.object(thf, "request", return_value={"assignments": []}):
+            result = thf.check_stream_access("assignments")
+        self.assertTrue(result)
+
+    def test_returns_false_on_403(self):
+        with patch.object(thf, "request", side_effect=self._make_403_error()):
+            result = thf.check_stream_access("assignments")
+        self.assertFalse(result)
+
+    def test_reraises_non_403_http_error(self):
+        resp = MagicMock()
+        resp.status_code = 500
+        exc = requests.exceptions.HTTPError(response=resp)
+        with patch.object(thf, "request", side_effect=exc):
+            with self.assertRaises(requests.exceptions.HTTPError):
+                thf.check_stream_access("assignments")
+
+    def test_reraises_connection_error(self):
+        with patch.object(thf, "request", side_effect=requests.exceptions.ConnectionError("timeout")):
+            with self.assertRaises(requests.exceptions.ConnectionError):
+                thf.check_stream_access("assignments")
+
+    def test_uses_today_as_date_window(self):
+        """check_stream_access must pass start_date and end_date params."""
+        captured = {}
+
+        def fake_request(url, params=None):
+            captured["params"] = params
+            return {"assignments": []}
+
+        with patch.object(thf, "request", side_effect=fake_request):
+            thf.check_stream_access("assignments")
+
+        self.assertIn("start_date", captured["params"])
+        self.assertIn("end_date", captured["params"])
+        self.assertEqual(captured["params"]["start_date"], captured["params"]["end_date"])
+
+
+# ---------------------------------------------------------------------------
+# Tests for _get_accessible_endpoints
+# ---------------------------------------------------------------------------
+
+class TestGetAccessibleEndpoints(unittest.TestCase):
+    """Unit tests for _get_accessible_endpoints()."""
+
+    ALL_ENDPOINTS = ["assignments", "clients", "milestones", "people", "projects", "roles"]
+
+    def test_returns_all_when_all_accessible(self):
+        with patch.object(thf, "check_stream_access", return_value=True):
+            result = thf._get_accessible_endpoints(self.ALL_ENDPOINTS)
+        self.assertEqual(result, self.ALL_ENDPOINTS)
+
+    def test_excludes_inaccessible_streams(self):
+        def access_side_effect(ep):
+            return ep != "roles"
+
+        with patch.object(thf, "check_stream_access", side_effect=access_side_effect):
+            result = thf._get_accessible_endpoints(self.ALL_ENDPOINTS)
+
+        self.assertNotIn("roles", result)
+        self.assertIn("assignments", result)
+
+    def test_raises_when_all_inaccessible(self):
+        with patch.object(thf, "check_stream_access", return_value=False):
+            with self.assertRaises(thf.ForecastForbiddenError) as ctx:
+                thf._get_accessible_endpoints(self.ALL_ENDPOINTS)
+        self.assertIn("supported streams", str(ctx.exception))
+
+    def test_partial_access_does_not_raise(self):
+        def access_side_effect(ep):
+            return ep in ["assignments", "clients"]
+
+        with patch.object(thf, "check_stream_access", side_effect=access_side_effect):
+            result = thf._get_accessible_endpoints(self.ALL_ENDPOINTS)
+
+        self.assertEqual(set(result), {"assignments", "clients"})
+
+    def test_preserves_endpoint_order(self):
+        endpoints = ["roles", "assignments", "clients"]
+
+        def access_side_effect(ep):
+            return ep != "roles"
+
+        with patch.object(thf, "check_stream_access", side_effect=access_side_effect):
+            result = thf._get_accessible_endpoints(endpoints)
+
+        self.assertEqual(result, ["assignments", "clients"])
+
+
+# ---------------------------------------------------------------------------
+# Tests for do_discover with access checks
+# ---------------------------------------------------------------------------
+
+
+class TestDoDiscoverAccessChecks(unittest.TestCase):
+    """Verify do_discover() honours _get_accessible_endpoints()."""
+
+    def setUp(self):
+        self._auth_patcher = patch.object(thf, "AUTH", _make_mock_auth())
+        self._auth_patcher.start()
+
+    def tearDown(self):
+        self._auth_patcher.stop()
+
+    def test_discover_includes_only_accessible_streams(self):
+        accessible = ["assignments", "clients"]
+        captured = io.StringIO()
+        with patch.object(thf, "_get_accessible_endpoints", return_value=accessible), \
+             patch("sys.stdout", captured):
+            thf.do_discover()
+        catalog = json.loads(captured.getvalue())
+
+        stream_ids = [s["tap_stream_id"] for s in catalog["streams"]]
+        self.assertEqual(set(stream_ids), {"assignments", "clients"})
+
+    def test_discover_with_all_accessible_streams(self):
+        captured = io.StringIO()
+        with patch.object(thf, "_get_accessible_endpoints", return_value=thf.ENDPOINTS), \
+             patch("sys.stdout", captured):
+            thf.do_discover()
+        catalog = json.loads(captured.getvalue())
+
+        stream_ids = [s["tap_stream_id"] for s in catalog["streams"]]
+        self.assertEqual(set(stream_ids), set(thf.ENDPOINTS))
+
+    def test_discover_raises_when_no_streams_accessible(self):
+        with patch.object(thf, "_get_accessible_endpoints",
+                          side_effect=thf.ForecastForbiddenError("no access")):
+            with self.assertRaises(thf.ForecastForbiddenError):
+                thf.do_discover()
