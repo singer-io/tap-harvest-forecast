@@ -34,7 +34,8 @@ ENDPOINTS = [
     "milestones",
     "people",
     "projects",
-    "roles"
+    "roles",
+    "placeholders"
 ]
 
 DATE_FORMAT = "%Y-%m-%d"
